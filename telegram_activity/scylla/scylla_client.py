@@ -20,7 +20,7 @@ class ZMQClient:
         if os.getenv("ZMQ_HOST"):
             host = os.getenv("ZMQ_HOST")
         if os.getenv("ZMQ_PORT"):
-            host = os.getenv("ZMQ_PORT")
+            port = os.getenv("ZMQ_PORT")
         
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.REQ)
