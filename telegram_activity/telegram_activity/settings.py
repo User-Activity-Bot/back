@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-_%hq15&gx_3hqlsqcnb84ompgfh=r2%=$%ks3h3ivg_mb9q5z&
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['0.0.0.0']
+ALLOWED_HOSTS = ['0.0.0.0', 'user_activity_back']
 
 PLANS_PRICE = {
     "alert" : 1,
