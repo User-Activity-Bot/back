@@ -32,6 +32,11 @@ class ActionCreateAPIView(CreateAPIView):
         user_id = data.get("user")
         plan = data.get("plan")
         track_id = data.get("track_id")
+        alert = data.get("alert", False)
+        
+        if plan == "alert": alert = True
+        elif plan == "full_data": pass
+        else: alert = False
         
         payment = None
         
@@ -40,34 +45,65 @@ class ActionCreateAPIView(CreateAPIView):
         except ObjectDoesNotExist:
             raise UnprocessableEntityException({"user": f"User with this ID({user_id}) does not exist."})
         
-        if plan != "free":
-            amount = PLANS_PRICE.get(plan, None)
-            if not amount: raise ValidationError({"plan" : "Unknown plan value"})
-            payment = Payment.objects.create(
-                user=user,
-                status="pending",
-                amount=amount,
-            )
-        else: 
-            if Action.objects.filter(plan="free", user=user_id, status="active").exists():
-                raise ConflictException("You already have one free tracking")
+        current_actions = Action.objects.filter(track_id=track_id, user=user)
         
-        if not user_id:
-            raise ValidationError({"user": "This field is required."})
-        if not track_id:
-            raise ValidationError({"track_id": "This field is required."})
-        
-        action = Action.objects.create(
-            user = user,
-            payment = payment, 
-            track_id = track_id,
-            plan = plan, 
+        if current_actions.exists():
+            action = current_actions.get()
+            if plan != action.plan:
+                amount = PLANS_PRICE.get(plan, None)
+                if not amount: 
+                    raise ValidationError({"plan": "Unknown plan value"})
+                payment = Payment.objects.create(
+                    user=user,
+                    status="pending",
+                    amount=amount
+                )
+                action.payment = payment
+                action.plan = plan
+                action.save()
+        else:
+            if plan != "free":
+                amount = PLANS_PRICE.get(plan, None)
+                if not amount: 
+                    raise ValidationError({"plan": "Unknown plan value"})
+                payment = Payment.objects.create(
+                    user=user,
+                    status="pending",
+                    amount=amount
+                )
+            else:
+                if Action.objects.filter(plan="free", user=user, status="active").exists():
+                    raise ConflictException("You already have one free tracking")
             
-        )
+            action = Action.objects.create(
+                user=user,
+                payment=payment, 
+                track_id=track_id,
+                plan=plan, 
+                alert=alert
+            )
         
         serializer = self.get_serializer(action)
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+class ChangeAlert(APIView):
+    def get(self, request):
+        
+        track_id = request.GET.get("track_id")
+        user_id = request.GET.get("user")
+        
+        try:
+            user = User.objects.get(user_id=user_id)
+        except ObjectDoesNotExist:
+            raise UnprocessableEntityException({"user": f"User with this ID({user_id}) does not exist."})
+        
+        action = Action.objects.filter(track_id=track_id, user=user).first()
+        
+        action.alert = not action.alert
+        action.save()
+        
+        return Response({"alert" : action.alert})
 
 class GetDailyReport(APIView):
     def get(self, request):
@@ -84,6 +120,7 @@ class ActionListAPIView(RetrieveAPIView):
     queryset = Action.objects.all()
     serializer_class = ActionSerializer
     permission_classes = [AllowAny]
+    lookup_field = 'track_id'
     
 class ActionListByUsersAPIView(ListAPIView):
     queryset = Action.objects.all()

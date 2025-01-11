@@ -4,6 +4,10 @@ import datetime
 
 from datetime import time
 
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
+
 class ZMQClient:
     """
     Класс для взаимодействия с ZeroMQ-сервером по REQ/REP паттерну.

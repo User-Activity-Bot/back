@@ -13,4 +13,4 @@ class ActionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Action
-        fields = ['id', 'user', 'payment', 'status', 'track_id', 'plan', 'created_at']
+        fields = ['id', 'user', 'payment', 'alert', 'status', 'track_id', 'plan', 'created_at']
